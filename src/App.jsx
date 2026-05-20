@@ -199,7 +199,7 @@ function App() {
             your site to do better.
           </p>
         </div>
-        <a className="button primary" href="mailto:siddanth@example.com">
+        <a className="button primary" href="mailto:siddu123raja@gmail.com">
           Email Siddanth
         </a>
       </section>
