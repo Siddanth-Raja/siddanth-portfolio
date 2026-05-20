@@ -83,7 +83,10 @@ function App() {
           <a href="#process">Process</a>
           <a href="#contact">Contact</a>
         </div>
-        <a className="nav-cta" href="mailto:siddanth@example.com">
+        <a
+          className="nav-cta"
+          href="mailto:siddu123raja@gmail.com?subject=Freelance%20Website%20Project"
+        >
           Start a Project
         </a>
       </nav>
@@ -199,9 +202,17 @@ function App() {
             your site to do better.
           </p>
         </div>
-        <a className="button primary" href="mailto:siddu123raja@gmail.com">
-          Email Siddanth
-        </a>
+        <div className="contact-actions">
+          <a
+            className="button primary"
+            href="mailto:siddu123raja@gmail.com?subject=Freelance%20Website%20Project"
+          >
+            Email Siddanth
+          </a>
+          <a className="button secondary" href="sms:+19724822117">
+            Text Siddanth
+          </a>
+        </div>
       </section>
     </main>
   )

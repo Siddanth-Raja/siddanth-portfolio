@@ -571,6 +571,13 @@ h3 {
   line-height: 1.7;
 }
 
+.contact-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
 @media (max-width: 980px) {
   .site-shell {
     width: min(100% - 28px, 720px);
@@ -628,6 +635,10 @@ h3 {
   .contact-section {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .contact-actions {
+    justify-content: flex-start;
   }
 }
 
