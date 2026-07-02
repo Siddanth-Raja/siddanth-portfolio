@@ -5,7 +5,7 @@ const projects = [
     title: 'LL Law Group',
     category: 'Client Website',
     description:
-      'A polished website for a law firm focused on trust, clarity, and stronger first-contact confidence.',
+      'Designed a law firm website focused on building trust and making it easier for potential clients to reach out.',
     tags: ['Credibility', 'Client Site', 'Lead Trust'],
   },
   {
