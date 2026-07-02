@@ -172,7 +172,7 @@ function App() {
       <section className="section" id="work">
         <div className="section-heading">
           <p className="eyebrow">Selected work</p>
-          <h2>Real projects focused on trust, clarity, and growth.</h2>
+          <h2>Projects that solve real business problems.</h2>
         </div>
         <div className="project-grid">
           {projects.map((project) => (
