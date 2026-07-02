@@ -12,15 +12,15 @@ const projects = [
     title: 'CyberForYouth',
     category: 'Nonprofit Platform',
     description:
-      "Rebuilt a cybersecurity nonprofit's website to make programs easier to understand and engagement easier to drive.",
+      "Improved a cybersecurity nonprofit's website so programs felt clearer, more credible, and easier to act on.",
     tags: ['Clarity', 'Engagement', 'Nonprofit'],
   },
   {
     title: 'Aeris - NASA HUNCH',
-    category: 'NASA HUNCH Concept',
+    category: 'Operational Concept',
     description:
-      'Built responsive interface concepts for inventory flows, alerts, and operational workflows.',
-    tags: ['Workflow Systems', 'Responsive UI', 'Tools'],
+      'Created product concepts to help teams track inventory, respond to alerts, and manage daily operations with less friction.',
+    tags: ['Workflow Systems', 'Operations', 'Clarity'],
   },
 ]
 
@@ -28,27 +28,27 @@ const solutions = [
   {
     title: 'AI Growth Audit',
     description:
-      'A quick review of your website, customer journey, and automation opportunities so you can see where growth is being left on the table.',
+      'A focused review of your website, customer journey, and follow-up gaps so you can see where leads and time are being lost.',
   },
   {
-    title: 'Website Redesigns',
+    title: 'Optimized Websites',
     description:
-      'Modern, fast websites built to make your business look credible and turn visitors into real inquiries.',
+      'Fast, modern websites designed to build trust, improve conversions, and turn more visitors into customers.',
   },
   {
     title: 'AI Automations',
     description:
-      'Automate repetitive tasks like follow-ups, intake, FAQs, scheduling, and internal workflows.',
+      'Save time on follow-ups, intake, FAQs, scheduling, and repeat customer tasks so your team can move faster.',
   },
   {
     title: 'Lead Capture Systems',
     description:
-      'Forms, booking flows, and conversion paths designed to make it easier for customers to take action.',
+      'Cleaner forms, booking paths, and follow-up flows that make it easier for customers to take the next step.',
   },
   {
     title: 'Internal Tools',
     description:
-      'Custom dashboards and tools that help you manage operations without messy spreadsheets or manual busywork.',
+      'Simple dashboards and tools that help you manage operations without messy spreadsheets or manual busywork.',
   },
 ]
 
@@ -58,6 +58,12 @@ const auditItems = [
   'Lead capture opportunities',
   'AI automation ideas',
   'Simple prioritized recommendations',
+]
+
+const trustItems = [
+  'Personally reviewed',
+  'Actionable recommendations',
+  'Built for your specific business',
 ]
 
 const processSteps = [
@@ -145,7 +151,7 @@ function App() {
           </div>
           <div className="preview-panel">
             <div className="preview-header">
-              <span>Growth Signal</span>
+              <span>Conversion Score</span>
               <strong>98</strong>
             </div>
             <div className="preview-chart">
@@ -166,7 +172,7 @@ function App() {
       <section className="section" id="work">
         <div className="section-heading">
           <p className="eyebrow">Selected work</p>
-          <h2>Digital systems built to make businesses easier to trust and easier to contact.</h2>
+          <h2>Real projects focused on trust, clarity, and growth.</h2>
         </div>
         <div className="project-grid">
           {projects.map((project) => (
@@ -187,7 +193,11 @@ function App() {
       <section className="section split-section" id="solutions">
         <div className="section-heading">
           <p className="eyebrow">Solutions</p>
-          <h2>Practical growth systems for local businesses moving into AI now.</h2>
+          <h2>How we help your business grow.</h2>
+          <p className="section-subhead">
+            Practical AI systems that help local businesses save time, earn
+            trust, and convert more visitors into customers.
+          </p>
         </div>
         <div className="service-grid">
           {solutions.map((solution) => (
@@ -246,13 +256,36 @@ function App() {
         </div>
       </section>
 
+      <section className="trust-section">
+        <div className="trust-copy">
+          <p className="eyebrow">Trust</p>
+          <h2>What makes every audit different</h2>
+          <p>
+            Every recommendation is reviewed by me before it's sent.
+          </p>
+          <p>
+            I don't generate generic AI reports or automated checklists.
+          </p>
+          <p>
+            Each audit combines AI analysis with a manual review of your
+            website, customer journey, and business goals so the recommendations
+            are practical, relevant, and worth implementing.
+          </p>
+        </div>
+        <ul className="trust-list">
+          {trustItems.map((item) => (
+            <li key={item}>✓ {item}</li>
+          ))}
+        </ul>
+      </section>
+
       <section className="contact-section" id="contact">
         <div className="contact-copy">
           <p className="eyebrow">Contact</p>
           <h2>Request your free AI growth audit.</h2>
           <p>
-            Share your business, website, and what you want to improve. Siddanth
-            will review the customer path and send back practical next steps.
+            I'll personally review your website and customer journey, then send
+            practical recommendations tailored to your business.
           </p>
         </div>
         <form className="audit-form" onSubmit={(event) => event.preventDefault()}>
