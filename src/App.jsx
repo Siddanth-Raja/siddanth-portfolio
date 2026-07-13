@@ -1,11 +1,15 @@
+import { useEffect, useState } from 'react'
 import './App.css'
+import { AuditBuilder } from './components/audit/AuditBuilder'
+import { AuditReport as AuditReportPreview } from './components/audit/AuditReport'
+import { sampleAuditReport } from './data/sampleAuditReport'
 
 const projects = [
   {
     title: 'LL Law Group',
     category: 'Client Website',
     description:
-      'Designed a law firm website focused on building trust and making it easier for potential clients to reach out.',
+      'A modern website built to create a stronger first impression and make it easier for potential clients to reach out.',
     tags: ['Credibility', 'Client Site', 'Lead Trust'],
   },
   {
@@ -99,7 +103,11 @@ const processSteps = [
   },
 ]
 
-function App() {
+function getNormalizedPath() {
+  return typeof window === 'undefined' ? '/' : window.location.pathname.replace(/\/+$/, '') || '/'
+}
+
+function HomePage() {
   return (
     <main className="site-shell">
       <div className="ambient ambient-one" />
@@ -116,7 +124,7 @@ function App() {
           <a href="#process">Process</a>
           <a href="#contact">Contact</a>
         </div>
-        <a className="nav-cta" href="#audit">
+        <a className="nav-cta" href="#contact">
           Free AI Growth Audit
         </a>
       </nav>
@@ -130,10 +138,10 @@ function App() {
             save time, capture more leads, and grow.
           </p>
           <div className="hero-actions">
-            <a className="button primary" href="#audit">
+            <a className="button primary" href="#contact">
               Get Free AI Growth Audit
             </a>
-            <a className="button secondary" href="#process">
+            <a className="button secondary" href="#contact">
               See How It Works
             </a>
           </div>
@@ -172,7 +180,7 @@ function App() {
       <section className="section" id="work">
         <div className="section-heading">
           <p className="eyebrow">Selected work</p>
-          <h2>Projects that solve real business problems.</h2>
+          <h2>Work that moves businesses forward.</h2>
         </div>
         <div className="project-grid">
           {projects.map((project) => (
@@ -197,6 +205,11 @@ function App() {
           <p className="section-subhead">
             Practical AI systems that help local businesses save time, earn
             trust, and convert more visitors into customers.
+          </p>
+          <p className="section-subhead">
+            The goal isn't to add AI for the sake of it. The goal is to build a
+            business that responds faster, earns trust, and runs with less
+            friction.
           </p>
         </div>
         <div className="service-grid">
@@ -319,6 +332,40 @@ function App() {
       </section>
     </main>
   )
+}
+
+function App() {
+  const [currentPath, setCurrentPath] = useState(getNormalizedPath)
+  const [generatedReport, setGeneratedReport] = useState(null)
+
+  useEffect(() => {
+    function handlePopState() {
+      setCurrentPath(getNormalizedPath())
+    }
+
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [])
+
+  function navigateTo(path) {
+    window.history.pushState({}, '', path)
+    setCurrentPath(path)
+  }
+
+  function handleGenerateAudit(report) {
+    setGeneratedReport(report)
+    navigateTo('/audit-preview')
+  }
+
+  if (currentPath === '/audit-builder') {
+    return <AuditBuilder onGenerate={handleGenerateAudit} />
+  }
+
+  if (currentPath === '/audit-preview') {
+    return <AuditReportPreview report={generatedReport ?? sampleAuditReport} />
+  }
+
+  return <HomePage />
 }
 
 export default App
