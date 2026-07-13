@@ -26,10 +26,11 @@ export function AuditReport({ report }: AuditReportProps) {
           eyebrow="Executive Summary"
           title={report.executiveSummary.heading}
           titleId="executive-summary"
+          className="audit-page-balanced"
         >
           <div className="audit-summary-layout">
             <ScoreCard
-              label="Overall Score"
+              label="Directional Score"
               score={report.overallScore}
               suffix="/ 100"
               variant="large"
@@ -38,6 +39,9 @@ export function AuditReport({ report }: AuditReportProps) {
               <p>{report.executiveSummary.body}</p>
             </div>
           </div>
+          <p className="audit-score-disclaimer">
+            Scores are directional assessments from the supplied business context, not analytics measurements.
+          </p>
           <div className="audit-card-grid audit-card-grid-four">
             {report.summaryCards.map((card) => (
               <article className="audit-card" key={card.title}>
@@ -50,14 +54,16 @@ export function AuditReport({ report }: AuditReportProps) {
 
         <AuditSection
           eyebrow="First Impression Review"
-          title="What a new patient is likely to notice first."
+          title="What a visitor is likely to notice first."
           titleId="first-impression"
+          className="audit-page-balanced"
         >
           <div className="audit-score-row">
             {report.firstImpressionScores.map((item) => (
               <ScoreCard key={item.label} label={item.label} score={item.score} note={item.note} />
             ))}
           </div>
+          <p className="audit-score-disclaimer">Directional assessment based on supplied context.</p>
           <div className="audit-observation-list">
             {report.firstImpressionFindings.map((finding) => (
               <article className="audit-observation" key={finding.noticed}>
@@ -82,6 +88,7 @@ export function AuditReport({ report }: AuditReportProps) {
           eyebrow="Customer Journey"
           title={report.customerJourney.heading}
           titleId="customer-journey"
+          className="audit-page-balanced"
         >
           <div className="audit-journey-flow" aria-label="Customer journey from search to new customer">
             {report.customerJourney.steps.map((step, index) => (
@@ -103,7 +110,7 @@ export function AuditReport({ report }: AuditReportProps) {
 
         <AuditSection
           eyebrow="Conversion Opportunities"
-          title="Practical fixes that can turn more visitors into calls and bookings."
+          title="Practical fixes that can turn more visitors into inquiries and action."
           titleId="conversion-opportunities"
         >
           <div className="audit-opportunity-grid">
@@ -133,8 +140,9 @@ export function AuditReport({ report }: AuditReportProps) {
 
         <AuditSection
           eyebrow="AI Opportunities"
-          title="Simple ways AI could save time and recover customer inquiries."
+          title="Simple ways AI could save time and recover inquiries."
           titleId="ai-opportunities"
+          className="audit-page-balanced"
         >
           <div className="audit-ai-list">
             {report.aiOpportunities.map((item) => (
@@ -156,7 +164,12 @@ export function AuditReport({ report }: AuditReportProps) {
           </div>
         </AuditSection>
 
-        <AuditSection eyebrow="Priority Matrix" title="What to fix first." titleId="priority-matrix">
+        <AuditSection
+          eyebrow="Priority Matrix"
+          title="What to fix first."
+          titleId="priority-matrix"
+          className="audit-page-balanced"
+        >
           <PriorityMatrix quadrants={report.priorityMatrix} />
         </AuditSection>
 
@@ -164,6 +177,7 @@ export function AuditReport({ report }: AuditReportProps) {
           eyebrow="Recommended Next Steps"
           title="A simple order of action."
           titleId="recommended-next-steps"
+          className="audit-page-balanced"
         >
           <div className="audit-next-steps">
             {report.recommendedNextSteps.map((group) => (
@@ -179,7 +193,7 @@ export function AuditReport({ report }: AuditReportProps) {
           </div>
         </AuditSection>
 
-        <section className="audit-page audit-final-note" aria-labelledby="final-note">
+        <section className="audit-page audit-page-balanced audit-final-note" aria-labelledby="final-note">
           <p className="audit-eyebrow">Final Note</p>
           <h2 id="final-note">{report.finalNote.heading}</h2>
           <div className="audit-letter">

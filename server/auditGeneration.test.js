@@ -46,6 +46,23 @@ test('mocked valid OpenAI response passes AuditReport validation', async () => {
     assert.equal(schema.properties.firstImpressionScores.minItems, 3)
     assert.equal(schema.properties.customerJourney.properties.steps.minItems, 5)
     assert.equal(schema.properties.finalNote.properties.paragraphs.minItems, 3)
+    assert.deepEqual(schema.properties.conversionOpportunities.items.properties.impact.enum, [
+      'High',
+      'Medium',
+      'Low',
+    ])
+    assert.deepEqual(schema.properties.aiOpportunities.items.properties.difficulty.enum, [
+      'Low',
+      'Medium',
+      'High',
+    ])
+
+    const systemPrompt = requestBody.input[0].content
+    assert.match(systemPrompt, /executiveSummary\.body <= 90 words/)
+    assert.match(systemPrompt, /summaryCards\[\]\.detail <= 28 words/)
+    assert.match(systemPrompt, /Do not repeat the same observation/)
+    assert.match(systemPrompt, /Do not invent metrics/)
+    assert.match(systemPrompt, /Every AI opportunity must map to a real workflow/)
 
     return {
       ok: true,
@@ -65,6 +82,20 @@ test('mocked valid OpenAI response passes AuditReport validation', async () => {
 test('mocked malformed OpenAI response fails AuditReport validation loudly', async () => {
   silenceAuditLogs()
 
+  global.fetch = async () => ({
+    ok: true,
+    json: async () => ({ output_text: '{not valid json' }),
+  })
+
+  await assert.rejects(
+    () => generateAuditReport(createInput(), { OPENAI_API_KEY: 'test-api-key' }),
+    /JSON parse failed:/,
+  )
+})
+
+test('mocked response with a missing required field fails clearly', async () => {
+  silenceAuditLogs()
+
   const input = createInput()
   const malformedReport = createFallbackReport(input)
   delete malformedReport.finalNote
@@ -80,27 +111,34 @@ test('mocked malformed OpenAI response fails AuditReport validation loudly', asy
   )
 })
 
-test('mocked valid OpenAI response normalizes overlong markdown prose', async () => {
+test('mocked response with incorrect client metadata fails clearly', async () => {
   silenceAuditLogs()
 
   const input = createInput()
   const report = createFallbackReport(input)
-  report.executiveSummary.body = `- ${makeWords('summary', 110)}`
-  report.summaryCards[0].detail = `* ${makeWords('detail', 40)}`
-  report.firstImpressionFindings[0].noticed = `1. ${makeWords('noticed', 40)}`
-  report.firstImpressionFindings[0].matters = makeWords('matters', 40)
-  report.firstImpressionFindings[0].instead = makeWords('instead', 42)
-  report.conversionOpportunities[0].impact = 'Very High Priority Label'
-  report.conversionOpportunities[0].noticed = makeWords('conversion', 42)
-  report.conversionOpportunities[0].matters = makeWords('because', 44)
-  report.conversionOpportunities[0].instead = makeWords('fix', 44)
-  report.aiOpportunities[0].does = makeWords('automation', 38)
-  report.aiOpportunities[0].helps = makeWords('helps', 40)
-  report.finalNote.paragraphs = [
-    makeWords('final-a', 38),
-    makeWords('final-b', 38),
-    makeWords('final-c', 38),
-  ]
+  report.finalNote.signatureTitle = 'AI Growth Consultant'
+
+  global.fetch = async () => ({
+    ok: true,
+    json: async () => ({ output_text: JSON.stringify(report) }),
+  })
+
+  await assert.rejects(
+    () => generateAuditReport(input, { OPENAI_API_KEY: 'test-api-key' }),
+    /finalNote\.signatureTitle: expected exact value "AI Growth Systems"/,
+  )
+})
+
+test('mocked valid OpenAI response normalizes formatting without damaging correct prose', async () => {
+  silenceAuditLogs()
+
+  const input = createInput()
+  const report = createFallbackReport(input)
+  const correctProse = 'A clear contact path preserves meaning, punctuation, and the business-specific recommendation.'
+  report.executiveSummary.body = `  ${correctProse}  `
+  report.summaryCards[0].detail = '* Clear proof near the first action can reduce hesitation.'
+  report.firstImpressionFindings[0].noticed = '1. The contact link sits below a long introduction.\nIt is easy to miss.'
+  report.aiOpportunities[0].does = '**Collects details** after a missed call and routes them to the right person.'
 
   global.fetch = async () => ({
     ok: true,
@@ -110,22 +148,63 @@ test('mocked valid OpenAI response normalizes overlong markdown prose', async ()
   const result = await generateAuditReport(input, { OPENAI_API_KEY: 'test-api-key' })
 
   assert.equal(result.source, 'openai')
-  assert.equal(countWords(result.report.executiveSummary.body), 90)
-  assert.equal(countWords(result.report.summaryCards[0].detail), 28)
-  assert.equal(countWords(result.report.firstImpressionFindings[0].noticed), 28)
-  assert.equal(countWords(result.report.firstImpressionFindings[0].matters), 32)
-  assert.equal(countWords(result.report.firstImpressionFindings[0].instead), 36)
-  assert.equal(countWords(result.report.conversionOpportunities[0].impact), 3)
-  assert.equal(countWords(result.report.conversionOpportunities[0].noticed), 30)
-  assert.equal(countWords(result.report.conversionOpportunities[0].matters), 35)
-  assert.equal(countWords(result.report.conversionOpportunities[0].instead), 38)
-  assert.equal(countWords(result.report.aiOpportunities[0].does), 32)
-  assert.equal(countWords(result.report.aiOpportunities[0].helps), 35)
-  assert.equal(result.report.finalNote.paragraphs.reduce((total, item) => total + countWords(item), 0), 90)
-  assert.match(result.report.executiveSummary.body, /\.\.\.$/)
-  assert.doesNotMatch(result.report.executiveSummary.body, /^-/)
-  assert.doesNotMatch(result.report.summaryCards[0].detail, /^\*/)
-  assert.doesNotMatch(result.report.firstImpressionFindings[0].noticed, /^1\./)
+  assert.equal(result.report.executiveSummary.body, correctProse)
+  assert.equal(
+    result.report.summaryCards[0].detail,
+    'Clear proof near the first action can reduce hesitation.',
+  )
+  assert.equal(
+    result.report.firstImpressionFindings[0].noticed,
+    'The contact link sits below a long introduction. It is easy to miss.',
+  )
+  assert.equal(
+    result.report.aiOpportunities[0].does,
+    'Collects details after a missed call and routes them to the right person.',
+  )
+})
+
+test('over-limit prose fails explicitly instead of being truncated', async () => {
+  silenceAuditLogs()
+
+  const input = createInput()
+  const report = createFallbackReport(input)
+  report.executiveSummary.body = makeWords('word', 91)
+
+  global.fetch = async () => ({
+    ok: true,
+    json: async () => ({ output_text: JSON.stringify(report) }),
+  })
+
+  await assert.rejects(
+    () => generateAuditReport(input, { OPENAI_API_KEY: 'test-api-key' }),
+    /executiveSummary\.body: expected at most 90 words, received 91/,
+  )
+})
+
+test('final note combined word limit is deterministic and explicit', async () => {
+  silenceAuditLogs()
+
+  const input = createInput()
+  const report = createFallbackReport(input)
+  report.finalNote.paragraphs = [makeWords('word', 31), makeWords('word', 30), makeWords('word', 30)]
+
+  global.fetch = async () => ({
+    ok: true,
+    json: async () => ({ output_text: JSON.stringify(report) }),
+  })
+
+  await assert.rejects(
+    () => generateAuditReport(input, { OPENAI_API_KEY: 'test-api-key' }),
+    /finalNote\.paragraphs: expected at most 90 words combined, received 91/,
+  )
+})
+
+test('sample fallback still works when no API key is configured', async () => {
+  const input = createInput()
+  const result = await generateAuditReport(input, {})
+
+  assert.equal(result.source, 'sample_fallback')
+  assert.deepEqual(result.report, createFallbackReport(input))
 })
 
 function createInput() {
@@ -142,10 +221,6 @@ function silenceAuditLogs() {
   console.error = () => {}
 }
 
-function makeWords(prefix, count) {
-  return Array.from({ length: count }, () => prefix.slice(0, 1)).join(' ')
-}
-
-function countWords(value) {
-  return value.split(/\s+/).filter(Boolean).length
+function makeWords(word, count) {
+  return Array.from({ length: count }, () => word).join(' ')
 }

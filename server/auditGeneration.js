@@ -3,6 +3,21 @@ const PREPARED_BY = 'Siddanth Raja'
 const SIGNATURE_TITLE = 'AI Growth Systems'
 const DEFAULT_MODEL = 'gpt-5.5'
 
+const WORD_LIMITS = Object.freeze({
+  executiveSummaryBody: 90,
+  summaryCardDetail: 28,
+  scoreNote: 18,
+  firstImpressionNoticed: 28,
+  firstImpressionMatters: 32,
+  firstImpressionInstead: 36,
+  conversionNoticed: 30,
+  conversionMatters: 35,
+  conversionInstead: 38,
+  aiDoes: 32,
+  aiHelps: 35,
+  finalNoteCombined: 90,
+})
+
 class AuditGenerationError extends Error {
   constructor(reason, detail) {
     super(detail ? `${reason}: ${detail}` : reason)
@@ -45,7 +60,7 @@ const auditReportJsonSchema = {
       required: ['heading', 'body'],
       properties: {
         heading: { type: 'string', minLength: 1, maxLength: 180 },
-        body: { type: 'string', minLength: 1, maxLength: 650 },
+        body: { type: 'string', minLength: 1, maxLength: 1200 },
       },
     },
     summaryCards: {
@@ -58,7 +73,7 @@ const auditReportJsonSchema = {
         required: ['title', 'detail'],
         properties: {
           title: { type: 'string', minLength: 1, maxLength: 80 },
-          detail: { type: 'string', minLength: 1, maxLength: 210 },
+          detail: { type: 'string', minLength: 1, maxLength: 350 },
         },
       },
     },
@@ -73,7 +88,7 @@ const auditReportJsonSchema = {
         properties: {
           label: { type: 'string', minLength: 1, maxLength: 50 },
           score: { type: 'string', minLength: 1, maxLength: 20 },
-          note: { type: 'string', minLength: 1, maxLength: 180 },
+          note: { type: 'string', minLength: 1, maxLength: 220 },
         },
       },
     },
@@ -113,10 +128,10 @@ const auditReportJsonSchema = {
         required: ['title', 'impact', 'noticed', 'matters', 'instead'],
         properties: {
           title: { type: 'string', minLength: 1, maxLength: 100 },
-          impact: { type: 'string', minLength: 1, maxLength: 30 },
-          noticed: { type: 'string', minLength: 1, maxLength: 230 },
-          matters: { type: 'string', minLength: 1, maxLength: 270 },
-          instead: { type: 'string', minLength: 1, maxLength: 300 },
+          impact: { type: 'string', enum: ['High', 'Medium', 'Low'] },
+          noticed: { type: 'string', minLength: 1, maxLength: 450 },
+          matters: { type: 'string', minLength: 1, maxLength: 450 },
+          instead: { type: 'string', minLength: 1, maxLength: 450 },
         },
       },
     },
@@ -130,9 +145,9 @@ const auditReportJsonSchema = {
         required: ['title', 'does', 'helps', 'difficulty'],
         properties: {
           title: { type: 'string', minLength: 1, maxLength: 100 },
-          does: { type: 'string', minLength: 1, maxLength: 250 },
-          helps: { type: 'string', minLength: 1, maxLength: 280 },
-          difficulty: { type: 'string', minLength: 1, maxLength: 40 },
+          does: { type: 'string', minLength: 1, maxLength: 420 },
+          helps: { type: 'string', minLength: 1, maxLength: 420 },
+          difficulty: { type: 'string', enum: ['Low', 'Medium', 'High'] },
         },
       },
     },
@@ -199,9 +214,9 @@ function findingSchema() {
     additionalProperties: false,
     required: ['noticed', 'matters', 'instead'],
     properties: {
-      noticed: { type: 'string', minLength: 1, maxLength: 230 },
-      matters: { type: 'string', minLength: 1, maxLength: 260 },
-      instead: { type: 'string', minLength: 1, maxLength: 290 },
+      noticed: { type: 'string', minLength: 1, maxLength: 450 },
+      matters: { type: 'string', minLength: 1, maxLength: 450 },
+      instead: { type: 'string', minLength: 1, maxLength: 450 },
     },
   }
 }
@@ -266,12 +281,21 @@ export async function generateAuditReport(input, runtimeEnv = process.env) {
             'Use every required top-level field exactly once: businessName, websiteUrl, industry, preparedBy, date, overallScore, executiveSummary, summaryCards, firstImpressionScores, firstImpressionFindings, customerJourney, conversionOpportunities, aiOpportunities, priorityMatrix, recommendedNextSteps, finalNote.',
             `Set preparedBy to "${PREPARED_BY}" and date to "${CURRENT_DATE}".`,
             'Do not rename fields, omit fields, wrap the report in another object, or include markdown.',
-            'Keep content concise so cards and PDFs remain readable.',
-            'Length limits: executiveSummary.body <= 90 words; summaryCards.detail <= 28 words; firstImpressionFindings.noticed <= 28 words, matters <= 32 words, instead <= 36 words; conversionOpportunities.impact is one word or a very short label, noticed <= 30 words, matters <= 35 words, instead <= 38 words; aiOpportunities.does <= 32 words, helps <= 35 words; finalNote.paragraphs combined <= 90 words.',
-            'Use business language: customers, patients, calls, bookings, trust, leads, follow-up, time saved.',
-            'Avoid these words and topics: typography, hierarchy, frontend, responsive design, React, Next.js, Tailwind, generic UX filler.',
+            'Write like a sharp premium consultant who inspected the supplied business context: short, specific, commercially intelligent, confident, human, and useful.',
+            'Field limits are hard maximums: executiveSummary.body <= 90 words; each summaryCards[].detail <= 28 words; each firstImpressionScores[].note <= 18 words; each firstImpressionFindings[].noticed <= 28 words, matters <= 32 words, instead <= 36 words; each conversionOpportunities[].noticed <= 30 words, matters <= 35 words, instead <= 38 words; each aiOpportunities[].does <= 32 words, helps <= 35 words; all finalNote.paragraphs combined <= 90 words.',
+            'Use distinct evidence across sections. Do not repeat the same observation, recommendation, or business consequence in different words.',
+            'Create at least three specific, non-obvious moments grounded in the supplied notes where the owner could think, "I never noticed that."',
+            'Do not use generic business advice, unnecessary introductions, bloated transitions, or restate a card title in its body.',
+            'Do not use markdown, bullet prefixes, headings, or labels inside fields that expect plain prose.',
+            'Do not invent metrics, analytics, review counts, customer behavior, private facts, or unsupported certainty.',
+            'Treat overallScore and the three first-impression scores as directional judgments from the supplied context, not objective measurements. Do not claim a measured or scientific scoring method.',
+            'Translate design observations into business consequences such as trust, contact difficulty, decision friction, lost inquiries, or staff time. Avoid design jargon with no business consequence.',
+            'Use industry-appropriate business language. Do not call customers patients, clients, diners, or guests unless that term fits the supplied industry.',
+            'Never expose internal phrases such as supplied notes, supplied context, limited context, prompt, model, or inability to browse in client-facing copy.',
+            'Use insight-led executiveSummary.heading and finalNote.heading text. Do not repeat section labels such as Executive Summary or Final Note.',
             "Every recommendation must follow What I noticed -> Why it matters -> What I'd do instead.",
-            'Be practical, specific, calm, and premium. Do not invent private facts. When website details are unknown, frame observations as likely audit opportunities.',
+            'Every AI opportunity must map to a real workflow, trigger, handoff, or repetitive task. Do not recommend AI merely to fill the AI section.',
+            'When evidence is incomplete, state a careful opportunity or risk instead of pretending the website was browsed or making a certain claim.',
           ].join('\n'),
         },
         {
@@ -311,7 +335,7 @@ export async function generateAuditReport(input, runtimeEnv = process.env) {
 
   logParsedAuditJson(normalized)
 
-  const validationErrors = getAuditReportValidationErrors(normalized)
+  const validationErrors = getAuditReportValidationErrors(normalized, input)
   if (validationErrors.length > 0) {
     console.error('[audit-generation] Schema validation failed:', validationErrors)
     throw new AuditGenerationError('Schema validation failed', validationErrors[0])
@@ -516,18 +540,25 @@ function buildPrompt(input) {
     `industry must equal "${input.industry}".`,
     `preparedBy must equal "${PREPARED_BY}".`,
     `date must equal "${CURRENT_DATE}".`,
+    `finalNote.signatureName must equal "${PREPARED_BY}".`,
+    `finalNote.signatureTitle must equal "${SIGNATURE_TITLE}".`,
     'overallScore must be a number from 0 to 100.',
     'Use exactly 4 summaryCards.',
     'Use exactly 3 firstImpressionScores.',
     'Use exactly 3 firstImpressionFindings.',
     'Use exactly 5 customerJourney.steps and exactly 3 customerJourney.frictionPoints.',
+    'Write each customerJourney.steps item as a complete stage label of no more than 5 words, never as a sentence fragment.',
     'Use exactly 4 conversionOpportunities.',
+    'Set each conversionOpportunities.impact to exactly High, Medium, or Low.',
     'Use exactly 5 aiOpportunities.',
+    'Set each aiOpportunities.difficulty to exactly Low, Medium, or High.',
     'Use exactly 4 priorityMatrix groups, each with 2 to 4 items.',
     'Use exactly 3 recommendedNextSteps groups, each with 2 to 4 items.',
-    'Use exactly 3 finalNote.paragraphs and include a final curiosity note with no hard sell.',
+    'Use exactly 3 finalNote.paragraphs and end with a low-pressure, curiosity-building insight written as natural prose. Never label it "Curiosity note" or use similar template language.',
     'Do not use markdown bullets inside string values. Write plain sentence text.',
-    'Keep every card concise enough to fit cleanly in a printable report.',
+    'Use the optional notes as the evidence base. Do not claim you inspected anything that the notes do not support.',
+    'Give each section a distinct job: summarize the business, reveal first-impression friction, map the journey, recommend conversion fixes, then identify workflow-grounded AI opportunities.',
+    'Keep every card within its field-level word limit and concise enough to fit cleanly in a printable report.',
   ].join('\n')
 }
 
@@ -553,21 +584,15 @@ function normalizeAuditReportContent(value) {
 
   return {
     ...value,
-    businessName: normalizeText(value.businessName, undefined, 120),
-    websiteUrl: normalizeText(value.websiteUrl, undefined, 180),
-    industry: normalizeText(value.industry, undefined, 120),
-    preparedBy: normalizeText(value.preparedBy, undefined, 80),
-    date: normalizeText(value.date, undefined, 60),
+    businessName: normalizeText(value.businessName),
+    websiteUrl: normalizeText(value.websiteUrl),
+    industry: normalizeText(value.industry),
+    preparedBy: normalizeText(value.preparedBy),
+    date: normalizeText(value.date),
     executiveSummary: normalizeExecutiveSummaryContent(value.executiveSummary),
     summaryCards: normalizeArrayContent(value.summaryCards, normalizeSummaryCardContent),
     firstImpressionScores: normalizeArrayContent(value.firstImpressionScores, normalizeScoreContent),
-    firstImpressionFindings: normalizeArrayContent(value.firstImpressionFindings, (item) =>
-      normalizeFindingContent(item, {
-        noticed: 28,
-        matters: 32,
-        instead: 36,
-      }),
-    ),
+    firstImpressionFindings: normalizeArrayContent(value.firstImpressionFindings, normalizeFindingContent),
     customerJourney: normalizeCustomerJourneyContent(value.customerJourney),
     conversionOpportunities: normalizeArrayContent(value.conversionOpportunities, normalizeConversionContent),
     aiOpportunities: normalizeArrayContent(value.aiOpportunities, normalizeAiOpportunityContent),
@@ -582,8 +607,8 @@ function normalizeExecutiveSummaryContent(value) {
 
   return {
     ...value,
-    heading: normalizeText(value.heading, undefined, 180),
-    body: normalizeText(value.body, 90, 650),
+    heading: normalizeText(value.heading),
+    body: normalizeText(value.body),
   }
 }
 
@@ -592,8 +617,8 @@ function normalizeSummaryCardContent(value) {
 
   return {
     ...value,
-    title: normalizeText(value.title, undefined, 80),
-    detail: normalizeText(value.detail, 28, 210),
+    title: normalizeText(value.title),
+    detail: normalizeText(value.detail),
   }
 }
 
@@ -602,20 +627,20 @@ function normalizeScoreContent(value) {
 
   return {
     ...value,
-    label: normalizeText(value.label, undefined, 50),
-    score: normalizeText(value.score, undefined, 20),
-    note: normalizeText(value.note, 26, 180),
+    label: normalizeText(value.label),
+    score: normalizeText(value.score),
+    note: normalizeText(value.note),
   }
 }
 
-function normalizeFindingContent(value, limits) {
+function normalizeFindingContent(value) {
   if (!isRecord(value)) return value
 
   return {
     ...value,
-    noticed: normalizeText(value.noticed, limits.noticed, 230),
-    matters: normalizeText(value.matters, limits.matters, 260),
-    instead: normalizeText(value.instead, limits.instead, 290),
+    noticed: normalizeText(value.noticed),
+    matters: normalizeText(value.matters),
+    instead: normalizeText(value.instead),
   }
 }
 
@@ -624,24 +649,20 @@ function normalizeCustomerJourneyContent(value) {
 
   return {
     ...value,
-    heading: normalizeText(value.heading, undefined, 120),
-    steps: normalizeStringArrayContent(value.steps, 8, 50),
-    frictionPoints: normalizeStringArrayContent(value.frictionPoints, 18, 150),
+    heading: normalizeText(value.heading),
+    steps: normalizeStringArrayContent(value.steps),
+    frictionPoints: normalizeStringArrayContent(value.frictionPoints),
   }
 }
 
 function normalizeConversionContent(value) {
   if (!isRecord(value)) return value
-  const finding = normalizeFindingContent(value, {
-    noticed: 30,
-    matters: 35,
-    instead: 38,
-  })
+  const finding = normalizeFindingContent(value)
 
   return {
     ...value,
-    title: normalizeText(value.title, undefined, 100),
-    impact: normalizeText(value.impact, 3, 30),
+    title: normalizeText(value.title),
+    impact: normalizeText(value.impact),
     noticed: finding.noticed,
     matters: finding.matters,
     instead: finding.instead,
@@ -653,10 +674,10 @@ function normalizeAiOpportunityContent(value) {
 
   return {
     ...value,
-    title: normalizeText(value.title, undefined, 100),
-    does: normalizeText(value.does, 32, 250),
-    helps: normalizeText(value.helps, 35, 280),
-    difficulty: normalizeText(value.difficulty, 4, 40),
+    title: normalizeText(value.title),
+    does: normalizeText(value.does),
+    helps: normalizeText(value.helps),
+    difficulty: normalizeText(value.difficulty),
   }
 }
 
@@ -665,8 +686,8 @@ function normalizeListGroupContent(value) {
 
   return {
     ...value,
-    label: normalizeText(value.label, undefined, 80),
-    items: normalizeStringArrayContent(value.items, 14, 120),
+    label: normalizeText(value.label),
+    items: normalizeStringArrayContent(value.items),
   }
 }
 
@@ -675,10 +696,10 @@ function normalizeFinalNoteContent(value) {
 
   return {
     ...value,
-    heading: normalizeText(value.heading, undefined, 160),
-    paragraphs: normalizeStringArrayContent(value.paragraphs, 30, 150),
-    signatureName: normalizeText(value.signatureName, undefined, 80),
-    signatureTitle: normalizeText(value.signatureTitle, undefined, 80),
+    heading: normalizeText(value.heading),
+    paragraphs: normalizeStringArrayContent(value.paragraphs),
+    signatureName: normalizeText(value.signatureName),
+    signatureTitle: normalizeText(value.signatureTitle),
   }
 }
 
@@ -687,117 +708,148 @@ function normalizeArrayContent(value, normalizeItem) {
   return value.map(normalizeItem)
 }
 
-function normalizeStringArrayContent(value, wordLimit, charLimit) {
+function normalizeStringArrayContent(value) {
   if (!Array.isArray(value)) return value
-  return value.map((item) => normalizeText(item, wordLimit, charLimit))
+  return value.map((item) => normalizeText(item))
 }
 
-function normalizeText(value, wordLimit, charLimit) {
+function normalizeText(value) {
   if (typeof value !== 'string') return value
 
-  const cleaned = value
+  return value
     .replace(/\r\n?/g, '\n')
     .split('\n')
-    .map((line) => line.replace(/^\s*(?:[-*]|\d+[.)])\s+/, ''))
+    .map((line) => line.replace(/^\s*(?:[-*+]|\d+[.)])\s+/, ''))
     .join(' ')
-    .replace(/\*\*/g, '')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/__([^_]+)__/g, '$1')
+    .replace(/`([^`]+)`/g, '$1')
     .replace(/\s+/g, ' ')
     .trim()
-
-  const wordLimited = wordLimit ? truncateWords(cleaned, wordLimit) : cleaned
-
-  return charLimit ? truncateCharacters(wordLimited, charLimit) : wordLimited
 }
 
-function truncateWords(value, wordLimit) {
-  const words = value.split(/\s+/).filter(Boolean)
-  if (words.length <= wordLimit) return value
-  return `${words.slice(0, wordLimit).join(' ')}...`
-}
-
-function truncateCharacters(value, charLimit) {
-  if (value.length <= charLimit) return value
-
-  const shortened = value.slice(0, Math.max(0, charLimit - 3)).replace(/\s+\S*$/, '').trim()
-  return `${shortened}...`
-}
-
-function getAuditReportValidationErrors(value) {
+function getAuditReportValidationErrors(value, input) {
   const errors = []
 
   validateRecord(value, 'report', errors)
   if (!isRecord(value)) return errors
 
-  validateString(value, 'businessName', errors)
-  validateString(value, 'websiteUrl', errors)
-  validateString(value, 'industry', errors)
-  validateString(value, 'preparedBy', errors)
-  validateString(value, 'date', errors)
-  validateFiniteNumber(value, 'overallScore', errors)
+  validateString(value, 'businessName', errors, { maxLength: 120 })
+  validateString(value, 'websiteUrl', errors, { maxLength: 180 })
+  validateString(value, 'industry', errors, { maxLength: 120 })
+  validateString(value, 'preparedBy', errors, { maxLength: 80 })
+  validateString(value, 'date', errors, { maxLength: 60 })
+  validateFiniteNumber(value, 'overallScore', errors, { min: 0, max: 100 })
 
   validateExecutiveSummary(value.executiveSummary, 'executiveSummary', errors)
   validateArray(value.summaryCards, 'summaryCards', errors, 4, 4, (item, path) => {
-    validateString(item, `${path}.title`, errors)
-    validateString(item, `${path}.detail`, errors)
+    validateString(item, `${path}.title`, errors, { maxLength: 80 })
+    validateString(item, `${path}.detail`, errors, {
+      maxLength: 350,
+      maxWords: WORD_LIMITS.summaryCardDetail,
+    })
   })
   validateArray(value.firstImpressionScores, 'firstImpressionScores', errors, 3, 3, (item, path) => {
-    validateString(item, `${path}.label`, errors)
-    validateString(item, `${path}.score`, errors)
-    validateString(item, `${path}.note`, errors)
+    validateString(item, `${path}.label`, errors, { maxLength: 50 })
+    validateString(item, `${path}.score`, errors, { maxLength: 20 })
+    validateString(item, `${path}.note`, errors, {
+      maxLength: 220,
+      maxWords: WORD_LIMITS.scoreNote,
+    })
   })
   validateArray(value.firstImpressionFindings, 'firstImpressionFindings', errors, 3, 3, (item, path) => {
-    validateFinding(item, path, errors)
+    validateFinding(item, path, errors, {
+      noticed: { maxLength: 450, maxWords: WORD_LIMITS.firstImpressionNoticed },
+      matters: { maxLength: 450, maxWords: WORD_LIMITS.firstImpressionMatters },
+      instead: { maxLength: 450, maxWords: WORD_LIMITS.firstImpressionInstead },
+    })
   })
   validateCustomerJourney(value.customerJourney, 'customerJourney', errors)
   validateArray(value.conversionOpportunities, 'conversionOpportunities', errors, 4, 4, (item, path) => {
-    validateString(item, `${path}.title`, errors)
-    validateString(item, `${path}.impact`, errors)
-    validateFinding(item, path, errors)
+    validateString(item, `${path}.title`, errors, { maxLength: 100 })
+    validateString(item, `${path}.impact`, errors, { maxLength: 30 })
+    validateAllowedString(item.impact, `${path}.impact`, errors, ['High', 'Medium', 'Low'])
+    validateFinding(item, path, errors, {
+      noticed: { maxLength: 450, maxWords: WORD_LIMITS.conversionNoticed },
+      matters: { maxLength: 450, maxWords: WORD_LIMITS.conversionMatters },
+      instead: { maxLength: 450, maxWords: WORD_LIMITS.conversionInstead },
+    })
   })
   validateArray(value.aiOpportunities, 'aiOpportunities', errors, 5, 5, (item, path) => {
-    validateString(item, `${path}.title`, errors)
-    validateString(item, `${path}.does`, errors)
-    validateString(item, `${path}.helps`, errors)
-    validateString(item, `${path}.difficulty`, errors)
+    validateString(item, `${path}.title`, errors, { maxLength: 100 })
+    validateString(item, `${path}.does`, errors, {
+      maxLength: 420,
+      maxWords: WORD_LIMITS.aiDoes,
+    })
+    validateString(item, `${path}.helps`, errors, {
+      maxLength: 420,
+      maxWords: WORD_LIMITS.aiHelps,
+    })
+    validateString(item, `${path}.difficulty`, errors, { maxLength: 40 })
+    validateAllowedString(item.difficulty, `${path}.difficulty`, errors, ['Low', 'Medium', 'High'])
   })
   validateArray(value.priorityMatrix, 'priorityMatrix', errors, 4, 4, (item, path) => {
-    validateString(item, `${path}.label`, errors)
-    validateStringArray(item?.items, `${path}.items`, errors, 2, 4)
+    validateString(item, `${path}.label`, errors, { maxLength: 80 })
+    validateStringArray(item?.items, `${path}.items`, errors, 2, 4, { maxLength: 120 })
   })
   validateArray(value.recommendedNextSteps, 'recommendedNextSteps', errors, 3, 3, (item, path) => {
-    validateString(item, `${path}.label`, errors)
-    validateStringArray(item?.items, `${path}.items`, errors, 2, 4)
+    validateString(item, `${path}.label`, errors, { maxLength: 80 })
+    validateStringArray(item?.items, `${path}.items`, errors, 2, 4, { maxLength: 120 })
   })
   validateFinalNote(value.finalNote, 'finalNote', errors)
+
+  if (input) {
+    validateExactString(value.businessName, 'businessName', errors, input.businessName)
+    validateExactString(value.websiteUrl, 'websiteUrl', errors, input.websiteUrl)
+    validateExactString(value.industry, 'industry', errors, input.industry)
+    validateExactString(value.preparedBy, 'preparedBy', errors, PREPARED_BY)
+    validateExactString(value.date, 'date', errors, CURRENT_DATE)
+    validateExactString(value.finalNote?.signatureName, 'finalNote.signatureName', errors, PREPARED_BY)
+    validateExactString(value.finalNote?.signatureTitle, 'finalNote.signatureTitle', errors, SIGNATURE_TITLE)
+  }
 
   return errors
 }
 
 function validateExecutiveSummary(value, path, errors) {
   if (!validateRecord(value, path, errors)) return
-  validateString(value, `${path}.heading`, errors)
-  validateString(value, `${path}.body`, errors)
+  validateString(value, `${path}.heading`, errors, { maxLength: 180 })
+  validateString(value, `${path}.body`, errors, {
+    maxLength: 1200,
+    maxWords: WORD_LIMITS.executiveSummaryBody,
+  })
 }
 
 function validateCustomerJourney(value, path, errors) {
   if (!validateRecord(value, path, errors)) return
-  validateString(value, `${path}.heading`, errors)
-  validateStringArray(value.steps, `${path}.steps`, errors, 5, 5)
-  validateStringArray(value.frictionPoints, `${path}.frictionPoints`, errors, 3, 3)
+  validateString(value, `${path}.heading`, errors, { maxLength: 120 })
+  validateStringArray(value.steps, `${path}.steps`, errors, 5, 5, {
+    maxLength: 50,
+    maxWords: 5,
+  })
+  validateStringArray(value.frictionPoints, `${path}.frictionPoints`, errors, 3, 3, {
+    maxLength: 150,
+  })
 }
 
-function validateFinding(value, path, errors) {
-  validateString(value, `${path}.noticed`, errors)
-  validateString(value, `${path}.matters`, errors)
-  validateString(value, `${path}.instead`, errors)
+function validateFinding(value, path, errors, limits) {
+  validateString(value, `${path}.noticed`, errors, limits.noticed)
+  validateString(value, `${path}.matters`, errors, limits.matters)
+  validateString(value, `${path}.instead`, errors, limits.instead)
 }
 
 function validateFinalNote(value, path, errors) {
   if (!validateRecord(value, path, errors)) return
-  validateString(value, `${path}.heading`, errors)
-  validateStringArray(value.paragraphs, `${path}.paragraphs`, errors, 3, 3)
-  validateString(value, `${path}.signatureName`, errors)
-  validateString(value, `${path}.signatureTitle`, errors)
+  validateString(value, `${path}.heading`, errors, { maxLength: 160 })
+  validateStringArray(value.paragraphs, `${path}.paragraphs`, errors, 3, 3, { maxLength: 240 })
+  validateCombinedWordLimit(
+    value.paragraphs,
+    `${path}.paragraphs`,
+    errors,
+    WORD_LIMITS.finalNoteCombined,
+  )
+  validateString(value, `${path}.signatureName`, errors, { maxLength: 80 })
+  validateString(value, `${path}.signatureTitle`, errors, { maxLength: 80 })
 }
 
 function validateArray(value, path, errors, minLength, maxLength, validateItem) {
@@ -817,7 +869,7 @@ function validateArray(value, path, errors, minLength, maxLength, validateItem) 
   })
 }
 
-function validateStringArray(value, path, errors, minLength, maxLength) {
+function validateStringArray(value, path, errors, minLength, maxLength, constraints = {}) {
   if (!Array.isArray(value)) {
     errors.push(`${path}: expected array, received ${describeValue(value)}`)
     return
@@ -829,14 +881,7 @@ function validateStringArray(value, path, errors, minLength, maxLength) {
 
   value.forEach((item, index) => {
     const itemPath = `${path}[${index}]`
-    if (typeof item !== 'string') {
-      errors.push(`${itemPath}: expected non-empty string, received ${describeValue(item)}`)
-      return
-    }
-
-    if (!item.trim()) {
-      errors.push(`${itemPath}: expected non-empty string, received empty string`)
-    }
+    validateStringValue(item, itemPath, errors, constraints)
   })
 }
 
@@ -849,9 +894,12 @@ function validateRecord(value, path, errors) {
   return true
 }
 
-function validateString(record, path, errors) {
+function validateString(record, path, errors, constraints = {}) {
   const value = getPathValue(record, path)
+  validateStringValue(value, path, errors, constraints)
+}
 
+function validateStringValue(value, path, errors, { maxLength, maxWords } = {}) {
   if (typeof value !== 'string') {
     errors.push(`${path}: expected non-empty string, received ${describeValue(value)}`)
     return
@@ -859,14 +907,53 @@ function validateString(record, path, errors) {
 
   if (!value.trim()) {
     errors.push(`${path}: expected non-empty string, received empty string`)
+    return
+  }
+
+  if (maxLength && value.length > maxLength) {
+    errors.push(`${path}: expected at most ${maxLength} characters, received ${value.length}`)
+  }
+
+  const wordCount = countWords(value)
+  if (maxWords && wordCount > maxWords) {
+    errors.push(`${path}: expected at most ${maxWords} words, received ${wordCount}`)
   }
 }
 
-function validateFiniteNumber(record, path, errors) {
+function validateCombinedWordLimit(value, path, errors, maxWords) {
+  if (!Array.isArray(value) || value.some((item) => typeof item !== 'string')) return
+  const wordCount = value.reduce((total, item) => total + countWords(item), 0)
+  if (wordCount > maxWords) {
+    errors.push(`${path}: expected at most ${maxWords} words combined, received ${wordCount}`)
+  }
+}
+
+function validateExactString(value, path, errors, expected) {
+  if (typeof value === 'string' && value !== expected) {
+    errors.push(`${path}: expected exact value "${expected}", received "${value}"`)
+  }
+}
+
+function validateAllowedString(value, path, errors, allowedValues) {
+  if (typeof value === 'string' && !allowedValues.includes(value)) {
+    errors.push(`${path}: expected one of ${allowedValues.join(', ')}, received "${value}"`)
+  }
+}
+
+function countWords(value) {
+  return value.trim().split(/\s+/).filter(Boolean).length
+}
+
+function validateFiniteNumber(record, path, errors, { min, max } = {}) {
   const value = getPathValue(record, path)
 
   if (typeof value !== 'number' || !Number.isFinite(value)) {
     errors.push(`${path}: expected finite number, received ${describeValue(value)}`)
+    return
+  }
+
+  if ((min != null && value < min) || (max != null && value > max)) {
+    errors.push(`${path}: expected number from ${min} to ${max}, received ${value}`)
   }
 }
 
@@ -911,9 +998,9 @@ function sanitizeAuditReport(value) {
     businessName: cleanString(value.businessName),
     websiteUrl: cleanString(value.websiteUrl),
     industry: cleanString(value.industry),
-    preparedBy: cleanString(value.preparedBy) || PREPARED_BY,
-    date: cleanString(value.date) || CURRENT_DATE,
-    overallScore: clampScore(value.overallScore),
+    preparedBy: cleanString(value.preparedBy),
+    date: cleanString(value.date),
+    overallScore: sanitizeScoreNumber(value.overallScore),
     executiveSummary: sanitizeExecutiveSummary(value.executiveSummary),
     summaryCards: sanitizeArray(value.summaryCards, sanitizeSummaryCard, 4, 4),
     firstImpressionScores: sanitizeArray(value.firstImpressionScores, sanitizeScore, 3, 3),
@@ -930,6 +1017,8 @@ function sanitizeAuditReport(value) {
     !report.businessName ||
     !report.websiteUrl ||
     !report.industry ||
+    !report.preparedBy ||
+    !report.date ||
     report.overallScore == null ||
     !report.executiveSummary ||
     !report.customerJourney ||
@@ -957,7 +1046,7 @@ function sanitizeDraftInput(value) {
     businessName: cleanString(value.businessName, 120) || 'Allen Family Dental',
     websiteUrl: cleanString(value.websiteUrl, 180) || 'allenfamilydental.com',
     industry: cleanString(value.industry, 120) || 'Dental Practice',
-    extraNotes: cleanString(value.extraNotes, 700),
+    extraNotes: cleanString(value.extraNotes, 6000),
   }
 }
 
@@ -994,8 +1083,8 @@ function sanitizeFinding(value) {
 function sanitizeCustomerJourney(value) {
   if (!isRecord(value)) return null
   const heading = cleanString(value.heading, 120)
-  const steps = sanitizeStringArray(value.steps, 5, 5)
-  const frictionPoints = sanitizeStringArray(value.frictionPoints, 3, 3)
+  const steps = sanitizeStringArray(value.steps, 5, 5, 50)
+  const frictionPoints = sanitizeStringArray(value.frictionPoints, 3, 3, 150)
   return heading && steps && frictionPoints ? { heading, steps, frictionPoints } : null
 }
 
@@ -1019,14 +1108,14 @@ function sanitizeAiOpportunity(value) {
 function sanitizeListGroup(value) {
   if (!isRecord(value)) return null
   const label = cleanString(value.label, 80)
-  const items = sanitizeStringArray(value.items, 2, 4)
+  const items = sanitizeStringArray(value.items, 2, 4, 120)
   return label && items ? { label, items } : null
 }
 
 function sanitizeFinalNote(value) {
   if (!isRecord(value)) return null
   const heading = cleanString(value.heading, 160)
-  const paragraphs = sanitizeStringArray(value.paragraphs, 3, 3)
+  const paragraphs = sanitizeStringArray(value.paragraphs, 3, 3, 240)
   const signatureName = cleanString(value.signatureName, 80)
   const signatureTitle = cleanString(value.signatureTitle, 80)
   return heading && paragraphs && signatureName && signatureTitle
@@ -1036,23 +1125,26 @@ function sanitizeFinalNote(value) {
 
 function sanitizeArray(value, sanitizer, min, max) {
   if (!Array.isArray(value)) return null
-  const items = value.map(sanitizer).filter(Boolean).slice(0, max)
-  return items.length >= min ? items : null
+  if (value.length < min || value.length > max) return null
+
+  const items = value.map(sanitizer)
+  return items.every(Boolean) ? items : null
 }
 
-function sanitizeStringArray(value, min, max) {
-  return sanitizeArray(value, (item) => cleanString(item, 160), min, max)
+function sanitizeStringArray(value, min, max, itemMaxLength) {
+  return sanitizeArray(value, (item) => cleanString(item, itemMaxLength) || null, min, max)
 }
 
 function cleanString(value, maxLength = 1000) {
   if (typeof value !== 'string') return ''
-  return value.replace(/\s+/g, ' ').trim().slice(0, maxLength)
+  const cleaned = value.replace(/\s+/g, ' ').trim()
+  return cleaned.length <= maxLength ? cleaned : ''
 }
 
-function clampScore(value) {
+function sanitizeScoreNumber(value) {
   const number = Number(value)
-  if (!Number.isFinite(number)) return null
-  return Math.max(0, Math.min(100, Math.round(number)))
+  if (!Number.isFinite(number) || number < 0 || number > 100) return null
+  return Math.round(number)
 }
 
 function isRecord(value) {

@@ -9,7 +9,7 @@ export function sanitizeAuditReport(value: unknown): AuditReport | null {
     industry: cleanString(value.industry),
     preparedBy: cleanString(value.preparedBy),
     date: cleanString(value.date),
-    overallScore: clampScore(value.overallScore),
+    overallScore: sanitizeScoreNumber(value.overallScore),
     executiveSummary: sanitizeExecutiveSummary(value.executiveSummary),
     summaryCards: sanitizeArray(value.summaryCards, sanitizeSummaryCard, 4, 4),
     firstImpressionScores: sanitizeArray(value.firstImpressionScores, sanitizeScore, 3, 3),
@@ -84,8 +84,8 @@ function sanitizeFinding(value: unknown) {
 function sanitizeCustomerJourney(value: unknown) {
   if (!isRecord(value)) return null
   const heading = cleanString(value.heading, 120)
-  const steps = sanitizeStringArray(value.steps, 5, 5)
-  const frictionPoints = sanitizeStringArray(value.frictionPoints, 3, 3)
+  const steps = sanitizeStringArray(value.steps, 5, 5, 50)
+  const frictionPoints = sanitizeStringArray(value.frictionPoints, 3, 3, 150)
   return heading && steps && frictionPoints ? { heading, steps, frictionPoints } : null
 }
 
@@ -109,14 +109,14 @@ function sanitizeAiOpportunity(value: unknown) {
 function sanitizeListGroup(value: unknown) {
   if (!isRecord(value)) return null
   const label = cleanString(value.label, 80)
-  const items = sanitizeStringArray(value.items, 2, 4)
+  const items = sanitizeStringArray(value.items, 2, 4, 120)
   return label && items ? { label, items } : null
 }
 
 function sanitizeFinalNote(value: unknown) {
   if (!isRecord(value)) return null
   const heading = cleanString(value.heading, 160)
-  const paragraphs = sanitizeStringArray(value.paragraphs, 3, 3)
+  const paragraphs = sanitizeStringArray(value.paragraphs, 3, 3, 240)
   const signatureName = cleanString(value.signatureName, 80)
   const signatureTitle = cleanString(value.signatureTitle, 80)
   return heading && paragraphs && signatureName && signatureTitle
@@ -131,23 +131,26 @@ function sanitizeArray<T>(
   max: number,
 ): T[] | null {
   if (!Array.isArray(value)) return null
-  const items = value.map(sanitizer).filter((item): item is T => item != null).slice(0, max)
-  return items.length >= min ? items : null
+  if (value.length < min || value.length > max) return null
+
+  const items = value.map(sanitizer)
+  return items.every((item): item is T => item != null) ? items : null
 }
 
-function sanitizeStringArray(value: unknown, min: number, max: number) {
-  return sanitizeArray(value, (item) => cleanString(item, 160) || null, min, max)
+function sanitizeStringArray(value: unknown, min: number, max: number, itemMaxLength: number) {
+  return sanitizeArray(value, (item) => cleanString(item, itemMaxLength) || null, min, max)
 }
 
 function cleanString(value: unknown, maxLength = 1000) {
   if (typeof value !== 'string') return ''
-  return value.replace(/\s+/g, ' ').trim().slice(0, maxLength)
+  const cleaned = value.replace(/\s+/g, ' ').trim()
+  return cleaned.length <= maxLength ? cleaned : ''
 }
 
-function clampScore(value: unknown) {
+function sanitizeScoreNumber(value: unknown) {
   const score = Number(value)
-  if (!Number.isFinite(score)) return null
-  return Math.max(0, Math.min(100, Math.round(score)))
+  if (!Number.isFinite(score) || score < 0 || score > 100) return null
+  return Math.round(score)
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
